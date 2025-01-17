@@ -9,17 +9,22 @@ import { AuthError } from 'next-auth';
   const FormSchema = z.object({
     id: z.string({invalid_type_error: "Please select a customer!"}),
     customerId: z.string(),
-    amount: z.coerce
-      .number()
-      .gt(0, { message: 'Please enter an amount greater than $0.' }),
-    status: z.enum(['pending', 'paid'], {
-        invalid_type_error: 'Please select an invoice status.',
-      }),
+    amount: z.coerce.number().gt(0, { message: 'Please enter an amount greater than $0.' }),
+    status: z.enum(['pending', 'paid'], {invalid_type_error: 'Please select an invoice status.'}),
     date: z.string(),
+  });
+
+  const CustomerFormSchema = z.object({
+    email: z
+        .string()
+        .min(1, { message: "This field is required." })
+        .email("This is not a valid email.")
+        .refine(async (e) => {return await checkIfEmailIsValid(e);}, "There was an error with this email address"),
+    name: z.string().min(1, {message: "This field is required."})
   });
    
   const CreateInvoice = FormSchema.omit({ id: true, date: true });
-  const CreateCustomer = FormSchema.omit({ id: true, date: true });
+  const CreateCustomer = CustomerFormSchema.omit({});
   const invoicesRedirect = '/dashboard/invoices';
   const customersRedirect = '/dashboard/customers';
   export type State = {
@@ -35,9 +40,9 @@ import { AuthError } from 'next-auth';
 
   export async function createCustomer(prevState: State, formData: FormData) {
     // Validate form using Zod
-    const validatedFields = CreateCustomer.safeParse({
+    const validatedFields = await CreateCustomer.safeParseAsync({
       name: formData.get('name'),
-      email: formData.get('email'),
+      email: formData.get('email')
     });
    
     // If form validation fails, return errors early. Otherwise, continue.
@@ -53,10 +58,7 @@ import { AuthError } from 'next-auth';
 
     // Insert data into the database
     try {
-      await sql`
-        INSERT INTO customers (name, email, image_url)
-        VALUES (${name}, ${email}, '')
-      `;
+      await sql`INSERT INTO customers (name, email, image_url) VALUES (${name}, ${email}, '/customers/default-pfp.png')`;
     } catch (error) {
       // If a database error occurs, return a more specific error.
       console.log(error);
@@ -185,6 +187,22 @@ export async function authenticate(
       }
     }
     throw error;
+  }
+}
+
+async function checkIfEmailIsValid(email: string){
+    try {
+      const value = await sql`
+      SELECT Email FROM Customers
+      WHERE email = ${email}
+      LIMIT 1
+    `;
+
+    return value.rowCount === 0 ? true : false ;
+  } 
+  catch (error) {
+    console.log(error);
+    return { message: 'Database Error: Failed to check emails' };
   }
 }
 
