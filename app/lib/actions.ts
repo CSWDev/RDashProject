@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 
-const FormSchema = z.object({
+  const FormSchema = z.object({
     id: z.string({invalid_type_error: "Please select a customer!"}),
     customerId: z.string(),
     amount: z.coerce
@@ -18,18 +18,60 @@ const FormSchema = z.object({
     date: z.string(),
   });
    
-const CreateInvoice = FormSchema.omit({ id: true, date: true });
-
-const invoicesRedirect = '/dashboard/invoices'
-
-export type State = {
+  const CreateInvoice = FormSchema.omit({ id: true, date: true });
+  const CreateCustomer = FormSchema.omit({ id: true, date: true });
+  const invoicesRedirect = '/dashboard/invoices';
+  const customersRedirect = '/dashboard/customers';
+  export type State = {
     errors?: {
       customerId?: string[];
       amount?: string[];
       status?: string[];
+      name?: string[];
+      email?: string[];
     };
     message?: string | null;
   };
+
+  export async function createCustomer(prevState: State, formData: FormData) {
+    // Validate form using Zod
+    const validatedFields = CreateCustomer.safeParse({
+      name: formData.get('name'),
+      email: formData.get('email'),
+    });
+   
+    // If form validation fails, return errors early. Otherwise, continue.
+    if (!validatedFields.success) {
+      return {
+        errors: validatedFields.error.flatten().fieldErrors,
+        message: 'Missing Fields. Failed to Create Customer.',
+      };
+    }
+   
+    // Prepare data for insertion into the database
+    const { name, email } = validatedFields.data;
+
+    // Insert data into the database
+    try {
+      await sql`
+        INSERT INTO customers (name, email, image_url)
+        VALUES (${name}, ${email}, '')
+      `;
+    } catch (error) {
+      // If a database error occurs, return a more specific error.
+      console.log(error);
+      return {
+        message: 'Database Error: Failed to Create Customer.',
+      };
+    }
+   
+    // Revalidate the cache for the Customer page and redirect the user.
+    revalidatePath(customersRedirect.toString());
+    redirect(customersRedirect.toString());
+    return {message: "Successfully Created!"}
+  }
+
+
 
   export async function createInvoice(prevState: State, formData: FormData) {
     // Validate form using Zod
@@ -60,6 +102,7 @@ export type State = {
       `;
     } catch (error) {
       // If a database error occurs, return a more specific error.
+      console.log(error);
       return {
         message: 'Database Error: Failed to Create Invoice.',
       };
@@ -101,6 +144,7 @@ export async function updateInvoice(
         WHERE id = ${id}
       `;
     } catch (error) {
+      console.log(error);
       return { message: 'Database Error: Failed to Update Invoice.' };
     }
    
@@ -118,7 +162,8 @@ export async function deleteInvoice(id: string) {
       revalidatePath(invoicesRedirect.toString());
     } 
     catch (error) {
-        return { message: 'Database Error: Failed to Delete Invoice' };
+      console.log(error);
+      return { message: 'Database Error: Failed to Delete Invoice' };
     }
 }
 
@@ -129,6 +174,8 @@ export async function authenticate(
   try {
     await signIn('credentials', formData);
   } catch (error) {
+    console.log(error);
+
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
