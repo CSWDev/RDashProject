@@ -4,7 +4,8 @@
     "build": "next build",
     "dev": "next dev --turbopack",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "cypress:open":"cypress open"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -28,6 +29,7 @@
     "@types/node": "22.10.1",
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
+    "cypress": "^14.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.1.4"
   }

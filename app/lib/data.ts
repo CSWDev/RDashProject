@@ -215,7 +215,7 @@ export async function fetchFilteredCustomers(query: string, currentPage: number)
 		  customers.name ILIKE ${`%${query}%`} OR
         customers.email ILIKE ${`%${query}%`}
 		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
+		ORDER BY total_invoices desc
     LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
 	  `;
 
