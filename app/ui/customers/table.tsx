@@ -8,8 +8,10 @@ import {
 
 export default async function CustomersTable({
   customers,
+  currentPage,
 }: {
   customers: FormattedCustomersTable[];
+  currentPage: number;
 }) {
   return (
     <div className="mt-6 flow-root">

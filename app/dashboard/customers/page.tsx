@@ -1,7 +1,8 @@
-import { fetchFilteredCustomers } from '@/app/lib/data';
+import { fetchCustomersPages, fetchFilteredCustomers } from '@/app/lib/data';
 import { CreateCustomer } from '@/app/ui/customers/buttons';
 import Table from '@/app/ui/customers/table';
 import { lusitana } from '@/app/ui/fonts';
+import Pagination from '@/app/ui/invoices/pagination';
 import Search from '@/app/ui/search';
 
 export default async function Page(props: {
@@ -11,7 +12,10 @@ export default async function Page(props: {
   }>;}) {
     const searchParams = await props.searchParams;
     const query = searchParams?.query || '';
-    const customers = await fetchFilteredCustomers(query);
+    const currentPage = Number(searchParams?.page) || 1;
+    const customers = await fetchFilteredCustomers(query, currentPage);
+    const totalPages = await fetchCustomersPages(query);
+    console.log(totalPages);
   return (
     <div className="w-full">
       <div className="flex w-full items-center justify-between">
@@ -21,7 +25,10 @@ export default async function Page(props: {
         <Search placeholder="Search customers..." />
         <CreateCustomer />
       </div>
-        <Table customers={customers}/>
+        <Table customers={customers} currentPage={currentPage}/>
+      <div className="mt-5 flex w-full justify-center">
+        <Pagination totalPages={totalPages} />
+      </div>
     </div>
   );
 }
